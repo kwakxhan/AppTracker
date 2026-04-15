@@ -84,7 +84,7 @@
         android:layout_height="0dp"
         android:layout_weight="1"
         android:layout_marginBottom="8dp"
-        android:background="#F5F5F5"
+        android:background="@drawable/bg_bordered_box"
         android:padding="8dp">
 
         <LinearLayout
@@ -116,7 +116,7 @@
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
-        android:background="#F5F5F5"
+        android:background="@drawable/bg_bordered_box"
         android:padding="8dp">
 
         <TextView
