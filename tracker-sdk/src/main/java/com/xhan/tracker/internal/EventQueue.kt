@@ -30,6 +30,10 @@ internal class EventQueue(
     // 스레드 안전을 위한 락
     private val lock = ReentrantLock()
 
+    // flush 중복 실행 방지 플래그
+    @Volatile
+    private var isFlushing = false
+
     // 주기적 flush를 위한 단일 스레드 스케줄러
     private val executor: ScheduledExecutorService = Executors.newSingleThreadScheduledExecutor { r ->
         Thread(r, "AppTracker-Flush").apply { isDaemon = true }
@@ -57,10 +61,11 @@ internal class EventQueue(
                 Log.d("EventQueue", "Enqueued: ${event.name} (queue size: ${queue.size})")
             }
             val snapshot = queue.toList()
-            val shouldFlush = queue.size >= config.flushEventCount
+            val shouldFlush = queue.size >= config.flushEventCount && !isFlushing
             onQueueChanged(snapshot) // 큐 변경 알림
             if (shouldFlush) {
-                // 임계치 도달 시 백그라운드에서 전송
+                // 임계치 도달 시 백그라운드에서 전송 (flush 중이 아닐 때만)
+                isFlushing = true
                 executor.submit { flushInternal() }
             }
         } finally {
@@ -102,39 +107,55 @@ internal class EventQueue(
      * 전송 실패 시 이벤트를 다시 큐에 넣어 재시도할 수 있도록 한다.
      */
     private fun flushInternal() {
-        val eventsToSend: List<Event>
-        lock.lock()
         try {
-            if (queue.isEmpty()) return // 보낼 이벤트가 없으면 종료
-            eventsToSend = queue.toList()
-            queue.clear()
-        } finally {
-            lock.unlock()
-        }
-
-        if (config.isDebug) {
-            Log.d("EventQueue", "Flushing ${eventsToSend.size} events")
-        }
-
-        // 네트워크 전송 시도
-        val success = networkClient.send(eventsToSend)
-
-        // 전송 실패 시 이벤트를 큐 앞에 다시 삽입
-        if (!success) {
+            val eventsToSend: List<Event>
             lock.lock()
             try {
-                queue.addAll(0, eventsToSend)
+                if (queue.isEmpty()) return // 보낼 이벤트가 없으면 종료
+                eventsToSend = queue.toList()
+                queue.clear()
             } finally {
                 lock.unlock()
             }
-        }
 
-        // 큐 상태 변경 알림
-        lock.lock()
-        try {
-            onQueueChanged(queue.toList())
+            if (config.isDebug) {
+                Log.d("EventQueue", "Flushing ${eventsToSend.size} events")
+            }
+
+            // 네트워크 전송 시도
+            val success = networkClient.send(eventsToSend)
+
+            // 전송 실패 시 이벤트를 큐 앞에 다시 삽입
+            if (!success) {
+                lock.lock()
+                try {
+                    queue.addAll(0, eventsToSend)
+                } finally {
+                    lock.unlock()
+                }
+            }
+
+            // 큐 상태 변경 알림
+            lock.lock()
+            try {
+                onQueueChanged(queue.toList())
+            } finally {
+                lock.unlock()
+            }
         } finally {
-            lock.unlock()
+            // flush 완료 후 플래그 해제
+            isFlushing = false
+
+            // flush 중에 쌓인 이벤트가 임계치 이상이면 다시 flush
+            lock.lock()
+            try {
+                if (queue.size >= config.flushEventCount && !isFlushing) {
+                    isFlushing = true
+                    executor.submit { flushInternal() }
+                }
+            } finally {
+                lock.unlock()
+            }
         }
     }
 }
