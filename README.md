@@ -2,6 +2,18 @@
 
 Android 앱 이벤트 트래킹 SDK. 외부 라이브러리 없이 동작합니다.
 
+## 구현 영상
+
+1. 큐에 10개의 이벤트가 쌓이면 서버에 전송됩니다.
+https://github.com/user-attachments/assets/6ab69885-03e6-4513-a2bd-2d4397b9e310
+
+2. 30초가 지나면 큐에 쌓인 이벤트를 서버에 전송합니다.
+https://github.com/user-attachments/assets/b894720d-efb6-459e-a470-c0645fa71c94
+
+3. Flush 버튼을 클릭 시 큐에 쌓인 이벤트를 즉시 전송합니다.
+https://github.com/user-attachments/assets/39b412b7-b85e-4014-837b-5a94de75aa6c
+
+
 ## 설치
 
 ```kotlin
@@ -91,17 +103,3 @@ AppTracker.initialize(
 ## 라이선스
 
 MIT License
-
-
-
-https://github.com/user-attachments/assets/6ab69885-03e6-4513-a2bd-2d4397b9e310
-
-
-
-https://github.com/user-attachments/assets/b894720d-efb6-459e-a470-c0645fa71c94
-
-
-
-https://github.com/user-attachments/assets/39b412b7-b85e-4014-837b-5a94de75aa6c
-
-
