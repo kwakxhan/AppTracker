@@ -12,16 +12,16 @@ import com.xhan.tracker.internal.FakeNetworkClient
 class AppTrackerApplication : Application() {
     override fun onCreate() {
         super.onCreate()
-        // SDK 초기화: 앱 키, 디버그 모드, flush 설정 등을 빌더로 구성
-        // 실제 서버가 없으므로 FakeNetworkClient를 주입하여 테스트
+        // SDK 초기화: 실제 webhook 엔드포인트로 이벤트 전송
+        // networkClient를 주입하지 않으므로 HttpNetworkClient + RetryNetworkClient 자동 사용
         AppTracker.initialize(
             context = this,
             config = AppTrackerConfig.Builder("sample-app-key")
                 .debug(true)          // 디버그 로그 활성화
                 .flushEventCount(10)  // 10개 이벤트 쌓이면 자동 전송
                 .flushInterval(30_000L) // 30초마다 자동 전송
-                .build(),
-            networkClient = FakeNetworkClient() // 테스트용 가짜 네트워크 클라이언트
+                .baseUrl("https://webhook.site/84b44f2f-7367-4e95-a283-e31542f206e7")
+                .build()
         )
     }
 }

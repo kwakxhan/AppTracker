@@ -42,6 +42,7 @@ class MainActivity : AppCompatActivity() {
                 .debug(true)
                 .flushEventCount(10)
                 .flushInterval(30_000L)
+                .baseUrl("https://webhook.site/84b44f2f-7367-4e95-a283-e31542f206e7")
                 .build(),
             onQueueChanged = { events -> onQueueChanged(events) }
         )
