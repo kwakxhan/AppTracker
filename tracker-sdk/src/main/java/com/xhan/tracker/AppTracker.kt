@@ -3,7 +3,9 @@ package com.xhan.tracker
 import android.content.Context
 import android.util.Log
 import com.xhan.tracker.internal.EventQueue
-import com.xhan.tracker.internal.FakeNetworkClient
+import com.xhan.tracker.internal.HttpNetworkClient
+import com.xhan.tracker.internal.NetworkClient
+import com.xhan.tracker.internal.RetryNetworkClient
 import com.xhan.tracker.model.Event
 
 /**
@@ -25,11 +27,13 @@ object AppTracker {
      *
      * @param context 애플리케이션 컨텍스트
      * @param config SDK 설정 (앱 키, flush 주기 등)
+     * @param networkClient 커스텀 네트워크 클라이언트 (null이면 HttpNetworkClient + RetryNetworkClient 사용)
      * @param onQueueChanged 큐 상태 변경 시 호출되는 콜백 (UI 업데이트 등에 활용)
      */
     fun initialize(
         context: Context,
         config: AppTrackerConfig,
+        networkClient: NetworkClient? = null,
         onQueueChanged: (List<Event>) -> Unit = {}
     ) {
         if (isInitialized) {
@@ -37,7 +41,14 @@ object AppTracker {
             return
         }
         this.config = config
-        this.eventQueue = EventQueue(config, FakeNetworkClient(), onQueueChanged)
+
+        // networkClient가 주입되면 그것을 사용, 아니면 HTTP + 재시도 클라이언트 조합 사용
+        val client = networkClient ?: RetryNetworkClient(
+            delegate = HttpNetworkClient(config.baseUrl, config.isDebug),
+            isDebug = config.isDebug
+        )
+
+        this.eventQueue = EventQueue(config, client, onQueueChanged)
         isInitialized = true
         if (config.isDebug) {
             Log.d("AppTracker", "Initialized with appKey=${config.appKey}")
